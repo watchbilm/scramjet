@@ -28,8 +28,23 @@
         <div class="box-text-container">
           <h1>{{mask}}{{Scramjet URL Launcher}}</h1>
           <h2 class="box-description">
-            {{mask}}{{Enter a full URL (or domain). This only opens that URL via Scramjet and does not perform search fallback.}}
+            {{mask}}{{Use quick launch to open an internal page or enter a URL/domain to open it through Scramjet.}}
           </h2>
+
+          <form id="quick-launch-form" class="proxy-form" style="max-width: 860px; margin-bottom: 14px;">
+            <div class="search-box">
+              <input
+                type="text"
+                spellcheck="false"
+                autocomplete="off"
+                placeholder="Search a route like 'games' or type a URL"
+                id="quick-launch-input"
+                name="quick"
+                required
+              />
+            </div>
+            <button type="submit" class="pr-button glowbutton" id="quick-launch-btn">GO</button>
+          </form>
 
           <form action="{{route}}{{/go}}" method="get" class="proxy-form" style="max-width: 860px;">
             <div class="search-box">
@@ -45,6 +60,65 @@
             </div>
             <button type="submit" class="pr-button glowbutton" id="search-btn">OPEN URL</button>
           </form>
+
+          {{inline}}<script>
+            (() => {
+              const routeLookup = {
+                browsing: '{{route}}{{/browsing}}',
+                games: '{{route}}{{/games}}',
+                books: '{{route}}{{/games}}',
+                'web-games': '{{route}}{{/web-games}}',
+                dictionary: '{{route}}{{/web-games}}',
+                emulators: '{{route}}{{/emulators}}',
+                catalogue: '{{route}}{{/emulators}}',
+                'flash-games': '{{route}}{{/flash-games}}',
+                textbook: '{{route}}{{/flash-games}}',
+                'retro-games': '{{route}}{{/retro-games}}',
+                math: '{{route}}{{/retro-games}}',
+                ultraviolet: '{{route}}{{/ultraviolet}}',
+                networking: '{{route}}{{/ultraviolet}}',
+                scramjet: '{{route}}{{/scramjet}}',
+                working: '{{route}}{{/scramjet}}',
+                rammerhead: '{{route}}{{/rammerhead}}',
+                physics: '{{route}}{{/rammerhead}}',
+                youtube: '{{route}}{{/youtube}}',
+                wiki: '{{route}}{{/youtube}}',
+                apps: '{{route}}{{/apps}}',
+                software: '{{route}}{{/apps}}',
+                credits: '{{route}}{{/credits}}',
+                terms: '{{route}}{{/terms}}',
+                documentation: '{{route}}{{/documentation}}',
+                questions: '{{route}}{{/questions}}',
+              };
+
+              const form = document.getElementById('quick-launch-form');
+              const input = document.getElementById('quick-launch-input');
+
+              if (!form || !input) return;
+
+              form.addEventListener('submit', (event) => {
+                event.preventDefault();
+
+                const raw = input.value.trim();
+                if (!raw) return;
+
+                const clean = raw.replace(/^\/+/, '').toLowerCase();
+                if (routeLookup[clean]) {
+                  window.location.assign(routeLookup[clean]);
+                  return;
+                }
+
+                const looksLikeUrl = /^(https?:\/\/|[\w.-]+\.[a-z]{2,})(?:[/:?#]|$)/i.test(raw);
+                if (looksLikeUrl) {
+                  const target = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                  window.location.assign(`{{route}}{{/go}}?url=${encodeURIComponent(target)}`);
+                  return;
+                }
+
+                window.location.assign('{{route}}{{/games}}');
+              });
+            })();
+          </script>{{inline}}
         </div>
       </div>
     </div>
