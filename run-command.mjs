@@ -179,8 +179,11 @@ commands: for (let i = 2; i < process.argv.length; i++)
 
       const localAssetDirs = ['assets', 'scram', 'uv'];
       for (const path of localAssetDirs) {
-        mkdirSync('./views/dist/' + path);
-        compile('./views/' + path, '', path + '/', './views/' + path, true);
+        const targetDir = './views/dist/' + path,
+          sourceDir = './views/' + path;
+        if (!existsSync(targetDir)) mkdirSync(targetDir);
+        if (existsSync(sourceDir))
+          compile(sourceDir, '', path + '/', sourceDir, true);
       }
 
       // Combine scripts from the corresponding node modules into the same
@@ -194,6 +197,7 @@ commands: for (let i = 2; i < process.argv.length; i++)
         chii: 'node_modules/chii',
       };
       for (const path of Object.entries(compilePaths)) {
+        if (!existsSync(path[1])) continue;
         const prefix = path[0] + '/',
           prefixUrl = new URL('./views/dist/' + prefix, import.meta.url);
         if (!existsSync(prefixUrl)) mkdirSync(prefixUrl);
