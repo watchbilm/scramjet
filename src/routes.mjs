@@ -37,7 +37,7 @@ let pages = {
   // Set the default page for when no pathname is supplied. Be sure to change the
   // option for disguiseFiles if the entry point should be hidden.
   default: config.disguiseFiles ? 'login' : 'index',
-  index: 'index.html',
+  index: 'pages/proxnav/scramjet.html',
   'manifest.json': 'manifest.json',
 
   /* Users must visit this route if disguiseFiles is enabled. The page loader only
@@ -55,7 +55,7 @@ let pages = {
   documentation: 'docs.html',
   questions: 'faq.html',
   s: 'pages/frame.html',
-  browsing: 'pages/surf.html',
+  browsing: 'pages/proxnav/scramjet.html',
   credits: 'pages/nav/credits.html',
   terms: 'pages/nav/terms.html',
   /* Games */

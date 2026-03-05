@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import { createServer } from 'node:http';
 import { server as wisp, logging } from "@mercuryworkshop/wisp-js/server";
-import createRammerhead from '../lib/rammerhead/src/server/index.js';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyStatic from '@fastify/static';
 import {
@@ -27,7 +26,7 @@ logging.set_level(logging.NONE);
 wisp.options.allow_udp_streams = false;
 wisp.options.allow_loopback_ips = true;
 
-// For security reasons only allow these ports. Any additional regional proxies or default sandboxed Tor ports should be added here.
+// For security reasons only allow these ports needed by the configured transport stack.
 wisp.options.port_whitelist = [
   80,
   443,
@@ -40,58 +39,14 @@ wisp.options.port_whitelist = [
 // The shutdown script in run-command.js will temporarily produce this file.
 const shutdown = fileURLToPath(new URL('./.shutdown', import.meta.url));
 
-const rh = createRammerhead();
-const rammerheadScopes = [
-  '/rammerhead.js',
-  '/hammerhead.js',
-  '/transport-worker.js',
-  '/task.js',
-  '/iframe-task.js',
-  '/worker-hammerhead.js',
-  '/messaging',
-  '/sessionexists',
-  '/deletesession',
-  '/newsession',
-  '/editsession',
-  '/needpassword',
-  '/syncLocalStorage',
-  '/api/shuffleDict',
-  '/mainport',
-].map((pathname) => pathname.replace('/', serverUrl.pathname));
-
-const rammerheadSession = new RegExp(
-    `^${serverUrl.pathname.replaceAll('.', '\\.')}[a-z0-9]{32}`
-  ),
-  shouldRouteRh = (req) => {
-    try {
-      const url = new URL(req.url, serverUrl);
-      return (
-        rammerheadScopes.includes(url.pathname) ||
-        rammerheadSession.test(url.pathname)
-      );
-    } catch (e) {
-      return false;
-    }
-  },
-  routeRhRequest = (req, res) => {
-    req.url = req.url.slice(serverUrl.pathname.length - 1);
-    rh.emit('request', req, res);
-  },
-  routeRhUpgrade = (req, socket, head) => {
-    req.url = req.url.slice(serverUrl.pathname.length - 1);
-    rh.emit('upgrade', req, socket, head);
-  };
-
-// Create a server factory for Rammerhead and Wisp
+// Create a server factory for Scramjet and Wisp.
 const serverFactory = (handler) => {
   return createServer()
     .on('request', (req, res) => {
-      if (shouldRouteRh(req)) routeRhRequest(req, res);
-      else handler(req, res);
+      handler(req, res);
     })
     .on('upgrade', (req, socket, head) => {
-      if (shouldRouteRh(req)) routeRhUpgrade(req, socket, head);
-      else if (req.url.endsWith(getAltPrefix('wisp', serverUrl.pathname)))
+      if (req.url.endsWith(getAltPrefix('wisp', serverUrl.pathname)))
         wisp.routeRequest(req, socket, head);
     });
 };
@@ -124,7 +79,6 @@ app.register(fastifyStatic, {
 [
   'assets',
   'archive',
-  'uv',
   'scram',
   'epoxy',
   'libcurl',
@@ -194,7 +148,6 @@ if (config.disguiseFiles) {
     );
   let exemptDirs = [
       'assets',
-      'uv',
       'scram',
       'epoxy',
       'libcurl',
@@ -206,8 +159,6 @@ if (config.disguiseFiles) {
   for (const [key, value] of Object.entries(externalPages))
     if ('string' === typeof value) exemptPages.push(key);
     else exemptDirs.push(key);
-  for (const path of rammerheadScopes)
-    if (!shouldNotHandle.test(path)) exemptDirs.push(path.slice(1));
   exemptPages = exemptPages.concat(exemptDirs);
   if (pages.default === 'login') exemptPages.push('');
 
@@ -219,8 +170,7 @@ if (config.disguiseFiles) {
     if (
       shouldNotHandle.test(reqPath) ||
       exemptDirs.some((dir) => reqPath.indexOf(dir + '/') === 0) ||
-      exemptPages.includes(reqPath) ||
-      rammerheadSession.test(serverUrl.pathname + reqPath)
+      exemptPages.includes(reqPath)
     )
       return done();
 
@@ -296,6 +246,49 @@ app.get(serverUrl.pathname + 'github/:redirect', (req, reply) => {
   if (req.params.redirect in externalPages.github)
     reply.redirect(externalPages.github[req.params.redirect]);
   else reply.code(404).type(supportedTypes.default).send(preloaded404);
+});
+
+
+app.get(serverUrl.pathname + 'go', (req, reply) => {
+  const rawTarget = req.query?.url;
+  if (typeof rawTarget !== 'string' || !rawTarget.trim())
+    return reply.code(400).send({ error: 'Missing url query parameter.' });
+
+  let target = rawTarget.trim();
+  if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
+
+  try {
+    const parsed = new URL(target);
+    if (!['http:', 'https:'].includes(parsed.protocol))
+      throw new Error('Invalid protocol');
+    return reply.redirect(
+      serverUrl.pathname + 's?url=' + encodeURIComponent(parsed.toString())
+    );
+  } catch {
+    return reply.code(400).send({ error: 'Invalid URL.' });
+  }
+});
+
+app.get(serverUrl.pathname + 'api/scramjet-target', (req, reply) => {
+  const rawTarget = req.query?.url;
+  if (typeof rawTarget !== 'string' || !rawTarget.trim())
+    return reply.code(400).send({ error: 'Missing url query parameter.' });
+
+  let target = rawTarget.trim();
+  if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
+
+  try {
+    const parsed = new URL(target);
+    if (!['http:', 'https:'].includes(parsed.protocol))
+      throw new Error('Invalid protocol');
+    return reply.send({
+      target: parsed.toString(),
+      launchPath:
+        serverUrl.pathname + 's?url=' + encodeURIComponent(parsed.toString()),
+    });
+  } catch {
+    return reply.code(400).send({ error: 'Invalid URL.' });
+  }
 });
 
 if (serverUrl.pathname === '/')

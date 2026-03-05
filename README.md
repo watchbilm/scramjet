@@ -159,6 +159,37 @@ npm run test
 
 This website is hosted locally with Scramjet, Ultraviolet (Wisp, Bare-Mux, EpoxyTransport, CurlTransport) and Rammerhead built-in.
 
+### Can this repo be used as an API proxy?
+
+Yes. The app already runs on Fastify, so you can add a server-side route that forwards requests to an upstream API.
+
+Minimal example for `src/server.mjs`:
+
+```js
+app.get(serverUrl.pathname + 'api/proxy', async (req, reply) => {
+  const target = req.query.url;
+  if (!target) return reply.code(400).send({ error: 'Missing url query param' });
+
+  const upstream = await fetch(target, {
+    method: 'GET',
+    headers: {
+      'user-agent': req.headers['user-agent'] || 'holy-unblocker-proxy',
+      accept: req.headers.accept || '*/*',
+    },
+  });
+
+  reply.code(upstream.status);
+  reply.header('content-type', upstream.headers.get('content-type') || 'application/json');
+  return reply.send(await upstream.text());
+});
+```
+
+Notes:
+
+- Always validate `target` against an allowlist to avoid open-proxy abuse.
+- Add timeout and size limits before using this in production.
+- For POST/PUT/PATCH, forward method/body selectively instead of blindly passing all headers.
+
 ### For security reasons when hosting with a reverse proxy PLEASE use NGINX not Caddy. This is due to wisp-js using loopbacks.
 
 #### Detailed Setup (Ubuntu Example)
