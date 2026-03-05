@@ -249,16 +249,31 @@ app.get(serverUrl.pathname + 'github/:redirect', (req, reply) => {
 });
 
 
+const searchFallback = (query) =>
+  `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+
+const normalizeTarget = (input) => {
+  const rawTarget = String(input || '').trim();
+  if (!rawTarget) return null;
+
+  let target = rawTarget;
+  if (/^https?:\/\//i.test(target)) return new URL(target).toString();
+
+  const domainLike =
+    /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:[/:?#].*)?$/.test(target) ||
+    target.startsWith('localhost');
+  if (domainLike) return new URL('https://' + target).toString();
+
+  return searchFallback(rawTarget);
+};
+
 app.get(serverUrl.pathname + 'go', (req, reply) => {
   const rawTarget = req.query?.url;
   if (typeof rawTarget !== 'string' || !rawTarget.trim())
     return reply.code(400).send({ error: 'Missing url query parameter.' });
 
-  let target = rawTarget.trim();
-  if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
-
   try {
-    const parsed = new URL(target);
+    const parsed = new URL(normalizeTarget(rawTarget));
     if (!['http:', 'https:'].includes(parsed.protocol))
       throw new Error('Invalid protocol');
     return reply.redirect(
@@ -274,11 +289,8 @@ app.get(serverUrl.pathname + 'api/scramjet-target', (req, reply) => {
   if (typeof rawTarget !== 'string' || !rawTarget.trim())
     return reply.code(400).send({ error: 'Missing url query parameter.' });
 
-  let target = rawTarget.trim();
-  if (!/^https?:\/\//i.test(target)) target = 'https://' + target;
-
   try {
-    const parsed = new URL(target);
+    const parsed = new URL(normalizeTarget(rawTarget));
     if (!['http:', 'https:'].includes(parsed.protocol))
       throw new Error('Invalid protocol');
     return reply.send({

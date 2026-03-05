@@ -57,6 +57,17 @@ View the <a href="#deploy-holy-unblocker">self-deployment options</a> if you wis
 
 ## Deploy Holy Unblocker
 
+### Docker (portable self-host)
+
+This repository now includes a multi-stage Dockerfile that builds the static output and runs the production server on Node 20.
+
+```bash
+docker build -t holy-unblocker .
+docker run --rm -p 8080:8080 -e PORT=8080 holy-unblocker
+```
+
+Then open `http://localhost:8080`.
+
 ### Free Deployments
 
 [![Deploy to Koyeb](https://binbashbanana.github.io/deploy-buttons/buttons/remade/koyeb.svg)](https://app.koyeb.com/deploy?name=holy-unblocker&type=git&repository=QuiteAFancyEmerald%2FHoly-Unblocker&branch=v6.9.4_production&builder=dockerfile&ports=8080%3Bhttp%3B%2F)

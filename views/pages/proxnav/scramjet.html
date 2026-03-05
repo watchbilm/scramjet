@@ -28,7 +28,7 @@
         <div class="box-text-container">
           <h1>{{mask}}{{Scramjet URL Launcher}}</h1>
           <h2 class="box-description">
-            {{mask}}{{Enter a full URL (or domain). This only opens that URL via Scramjet and does not perform search fallback.}}
+            {{mask}}{{Enter a URL, domain, or search query. Domains open directly in Scramjet and plain text runs a web search.}}
           </h2>
 
           <form action="{{route}}{{/go}}" method="get" class="proxy-form" style="max-width: 860px;">
@@ -37,7 +37,7 @@
                 type="text"
                 spellcheck="false"
                 autocomplete="off"
-                placeholder="https://example.com"
+                placeholder="URL, domain, or search query"
                 id="search-input"
                 name="url"
                 required
